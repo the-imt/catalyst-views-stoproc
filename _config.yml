@@ -1,1 +1,4 @@
 theme: jekyll-theme-slate
+# Includes an icon in the footer for each user name you enter
+footer-links:
+  github: the-imt
