@@ -98,6 +98,7 @@ Again, really short and sweet.
 So now that we have the retrieve portion sorted, what have we accomplished?  Well, first we used a single table as 2 distinct data sources.  What’s nice is that as long as the views return the same things, you can change the table structure to your heart’s content and the application will always work without additional effort.  Want it to be 3 tables?  Go for it, just make sure the views can assemble what is required.  Also, you’re now relying on the database to track things like whether or not an account is expired (it’s in the definition, really, go look).  Most importantly, you can add a uniqueness constraint on username for example (not shown, but definitely a good idea) and not have to worry about handling this in your code.  
 An added benefit is input sanitization.  When using a view or stored procedure, everything is paramaterised.  You’re not writing the SQL in code (which is a very bad practice), you’re using proper, validated libraries to autogenerate the SQL based on your need and mapping to the provided API.  This guarantees you can never be susceptible to injection attacks, since the DB engine will always interpret the parameter as text, never as executable code.
 Everything up to this point will just work with Catalyst and Postgres.  Getting stored procedures working takes a bit more effort (special thanks to the Perl Monks, wihout whose wisdom I would never have figured this out).  First thing you need is a stored procedure:
+
 `CREATE OR REPLACE FUNCTION p02_updateaccount(
     uname text,
     firstname text,
@@ -111,7 +112,6 @@ $BODY$
 DECLARE
 	accountcheck integer;
 	pwcheck text;
-	
 BEGIN
 	select userid into accountcheck from a01_user where username = uname;
 	/*
