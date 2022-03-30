@@ -4,6 +4,7 @@
 The question this essay answers is how to connect a Catalyst application to a Postgres back-end using stored procedures and views.  I’m not trying to convince anyone this is the correct way, I’m providing a guide for those who have already decided that.  If you’re trying to decide how to approach connecting your Catalyst application to Postgres, there are better resources available.
 There are a number of design considerations that went into the example code and have nothing really to do with the question at hand.  The only one I’ll mention is that I consider the data model built in the Catalyst application as part of the codebase not the database.  It shouldn't matter what gyrations I put the table structure through, the application should always work.  If the queries are built into the code, as is common, most database changes will force a code change.  This is not really desirable.  The application, using the data model as a translation layer, should always know what to expect and the database should always know what to provide; each is left to act independantly to accomplish what is needed.  This is very helpful in larger projects where the guys writing the application are not the guys dealing with the DB.  It would also be helpful in any group project where the ability to work to work on the DB separately from the application is appropriate.
 In order for the code included to work, you’ll need a few things installed and completed.  First you need Catalyst along with Moose and the Postgres drivers.  This essay assumes you already have Catalyst installed and working, Postgres installed and working and have successfully made them talk to each other.  I also assume at least moderate comfort working with Catalyst, Postgres and SQL.  You won’t need to be a senior developer to follow along and understand, but I’m likely to leave out details I see as universal or standard, counting on your knowledge to fill in those gaps.
+
 Catalyst applications with Postgres in the back-end will commmonly use the create script to autogenerate the schema used by catalyst:
 
 `/myapp_create.pl model MainDB DBIC::Schema myapp::Schema create=static components=TimeStamp 'dbi:Pg:host=mydb.domain.net dbname=mydb' 'skippy' 'password' '{ AutoCommit => 1 }'`
@@ -58,11 +59,10 @@ Correspondingly, inside the catalyst application you’ll need a few things.  Fi
 ```
 sub connect  {
 	my ($self, $c) = @_;
-	my $pbkdf2 = Crypt::PBKDF2->new(
-						HASH_CLASS 	=> 'HMACSHA2',
-						salt_len 	=> 10,
-						output_len	=> 50,
-						);
+	my $pbkdf2 = Crypt::PBKDF2->new(HASH_CLASS 	=> 'HMACSHA2',
+					salt_len 	=> 10,
+					output_len	=> 50,
+					);
 	if( my $UserName = $c->request->body_parameters->{username}
 		and my $attempt = $c->request->parameters->{password} )  {
 			my $Credential = $c->model('MainDB')->get_key($UserName);
@@ -126,7 +126,8 @@ DECLARE
 BEGIN
 	select userid into accountcheck from a01_user where username = uname;
 	/*
-		This isn’t about writing Postgres stored procedures, so most of this is removed.  There is lots of help for writing these things just a Google search away.
+		This isn’t about writing Postgres stored procedures, so most of this is removed.  
+		There is lots of help for writing these things just a Google search away.
 	*/
 	 select lastval() into accountcheck;
 	return accountcheck;
@@ -173,8 +174,10 @@ sub update_account  {
 }
 ```
 
-The line that does all the work, `my($returnval) = $self->resultset('Update_account')->search({}, {bind => [$username, $firstname, $lastname, $email, $HashedVal, $admin, $dlock]});`, simply binds the variables to the SQL call then sends it off to Postgres.  
+The line that does all the work, `my($returnval) = $self->resultset('Update_account')->search({}, {bind => [$username, $firstname, $lastname, $email, $HashedVal, $admin, $dlock]});`, simply binds the variables to the SQL call then sends it off to Postgres.
+
 I’m leaving out the controller piece, I feel it shouldn’t be necessary as it would mostly be about a call to the model with the correct parameters.  There are a couple examples of what that looks like already.
+
 It might seem there are a lot of moving parts here, but really it’s not different from what you would usually be doing with Catalyst, just sometimes you lose the syntactic sugar coating we all love.  Simply explained:
 1. Create views and stored procedures appropriate to your needs and current database,
 2. Add the views to the schema using the create script,
